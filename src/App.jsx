@@ -860,22 +860,10 @@ function PublicSite() {
           </div>
         </section>
 
-        <section className="contact" id="contact" aria-labelledby="contact-title">
-          <div className="contact__inner reveal">
-            <p className="eyebrow">Contact</p>
-            <h2 id="contact-title">Begin with a calm, considered inquiry.</h2>
-            <div className="contact-links">
-              <a href={`https://wa.me/${whatsappNumber}?text=${whatsappText}`} target="_blank" rel="noreferrer">WhatsApp</a>
-              <a href="https://instagram.com/likitu" target="_blank" rel="noreferrer">Instagram</a>
-              <a href="mailto:hello@likitu.com">Email inquiry</a>
-              <a href="#inquiry">Booking request</a>
-            </div>
-          </div>
-        </section>
+        {/* Contact section removed per request */}
 
         <footer className="site-footer">
           <div className="site-footer__brand">
-            <img src={likituLogo} alt="Likitu" />
             <p>Handcrafted crochet and beauty consultations from Gqeberha, South Africa.</p>
           </div>
           <div className="site-footer__links">
@@ -892,7 +880,7 @@ function PublicSite() {
           </div>
           <div className="site-footer__meta">
             <span>© {new Date().getFullYear()} Likitu Fashion & Beauty</span>
-            <span>Designed by Spearman Studios</span>
+            <span>Designed by Speelman Studios</span>
           </div>
         </footer>
       </main>
