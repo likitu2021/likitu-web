@@ -14,4 +14,17 @@ The React Compiler is not enabled on this template because of its impact on dev 
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+## Netlify deployment note
+
+This app is a client-side single-page application. Netlify needs a fallback redirect so that direct navigation to routes like `/admin` or `/products/<id>` loads `index.html` instead of returning 404.
+
+A `public/_redirects` file has been added with the rule:
+
+```text
+/* /index.html 200
+```
+
+This ensures Netlify serves the SPA entry page for all client-side routes.
+
 # likitu-web
