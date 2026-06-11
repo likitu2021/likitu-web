@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import "./assets/styles/site.css";
 
@@ -142,7 +142,7 @@ function AdminApp() {
     setDataStatus("Loading inquiries...");
     const { data, error } = await supabase
       .from("inquiries")
-      .select("id, full_name, email, whatsapp_number, inquiry_type, garment_or_service, preferred_sizing, event_or_needed_by, inspiration_references, design_description, created_at")
+      .select("id, full_name, whatsapp_number, inquiry_type, garment_or_service, preferred_sizing, event_or_needed_by, inspiration_references, design_description, created_at")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -369,14 +369,24 @@ function AdminInquiryList({ title, inquiries, emptyText }) {
                 <p>{inquiry.inquiry_type} · {inquiry.garment_or_service}</p>
               </div>
               <dl>
-                <div><dt>Email</dt><dd>{inquiry.email}</dd></div>
                 <div><dt>WhatsApp</dt><dd>{inquiry.whatsapp_number}</dd></div>
                 <div><dt>Size</dt><dd>{inquiry.preferred_sizing}</dd></div>
                 <div><dt>Needed by</dt><dd>{formatDate(inquiry.event_or_needed_by)}</dd></div>
                 <div><dt>Submitted</dt><dd>{formatDate(inquiry.created_at)}</dd></div>
               </dl>
               <p>{inquiry.design_description}</p>
-              {inquiry.inspiration_references?.length > 0 && <span className="admin-tag">{inquiry.inspiration_references.join(", ")}</span>}
+              {inquiry.inspiration_references?.length > 0 && (
+                <div className="admin-inspiration-gallery">
+                  <h4>Inspiration Images</h4>
+                  <div className="admin-inspiration-links">
+                    {inquiry.inspiration_references.map((url, idx) => (
+                      <a href={url} target="_blank" rel="noopener noreferrer" key={idx} className="admin-link">
+                        View Image {idx + 1}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </article>
           ))}
         </div>
@@ -430,22 +440,48 @@ function ProductInquiryPage({ product }) {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
-    const references = data.getAll("reference").filter((file) => file?.name);
-    const referenceNames = references.map((file) => file.name);
+    const references = data.getAll("reference").filter((file) => file && file.name && file.size > 0);
+
+    setIsSubmitting(true);
+    setFormStatus("Uploading inspiration images...");
+
+    const uploadedUrls = [];
+    try {
+      for (const file of references) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from("inspiration")
+          .upload(fileName, file);
+
+        if (uploadError) {
+          throw new Error(`Failed to upload ${file.name}: ${uploadError.message}`);
+        }
+
+        const { data: urlData } = supabase.storage
+          .from("inspiration")
+          .getPublicUrl(fileName);
+        if (urlData?.publicUrl) {
+          uploadedUrls.push(urlData.publicUrl);
+        }
+      }
+    } catch (uploadErr) {
+      setIsSubmitting(false);
+      setFormStatus(uploadErr.message);
+      return;
+    }
 
     const inquiry = {
       full_name: data.get("fullName")?.toString().trim() || "",
-      email: data.get("email")?.toString().trim() || "",
       whatsapp_number: data.get("phone")?.toString().trim() || "",
       inquiry_type: "Custom Crochet Garment",
       garment_or_service: product.title,
-      preferred_sizing: data.get("size")?.toString() || "",
+      preferred_sizing: data.get("size")?.toString() || "Not Applicable",
       event_or_needed_by: data.get("neededBy")?.toString() || "",
-      inspiration_references: referenceNames,
+      inspiration_references: uploadedUrls,
       design_description: data.get("details")?.toString().trim() || `Product inquiry for ${product.title}`,
     };
 
-    setIsSubmitting(true);
     setFormStatus("Sending your product inquiry...");
     const { error } = await submitInquiryToSupabase(inquiry);
     setIsSubmitting(false);
@@ -455,7 +491,7 @@ function ProductInquiryPage({ product }) {
       return;
     }
 
-    setFormStatus("Product inquiry sent. We will continue with you directly.");
+    setFormStatus("Product inquiry sent successfully. Thank you!");
     form.reset();
   };
 
@@ -477,10 +513,6 @@ function ProductInquiryPage({ product }) {
                 <input name="fullName" type="text" required />
               </label>
               <label>
-                Email address
-                <input name="email" type="email" required />
-              </label>
-              <label>
                 WhatsApp number
                 <input name="phone" type="tel" placeholder="+27XXXXXXXXX or 0XXXXXXXXX" pattern="(\+27|0)[0-9]{9}" required />
               </label>
@@ -498,15 +530,15 @@ function ProductInquiryPage({ product }) {
                 </select>
               </label>
               <label>
-                Event or needed by
+                Needed by
                 <input name="neededBy" type="date" />
               </label>
               <label className="form-grid__wide file-field">
-                Inspiration reference
+                Inspiration images
                 <input name="reference" type="file" accept="image/*" />
               </label>
               <label className="form-grid__wide">
-                Notes for this product
+                Describe your desired design or booking
                 <textarea name="details" rows="5" placeholder="Colour, fit, measurements, styling notes..." />
               </label>
             </div>
@@ -519,11 +551,38 @@ function ProductInquiryPage({ product }) {
   );
 }
 
+const crochetGarmentOptions = [
+  "Crochet skirt",
+  "Crochet top",
+  "Crochet dress",
+  "Crochet shorts",
+  "Crochet pants",
+  "Crochet two-piece set",
+  "Crochet beach cover-up",
+  "Crochet bikini or swim set",
+  "Crochet cardigan",
+  "Crochet bucket hat",
+  "Crochet headscarf",
+  "Crochet bag",
+  "Other custom request",
+];
+
+const makeupServiceOptions = [
+  "Event makeup",
+  "Photoshoot makeup",
+  "Soft glam makeup",
+  "Bridal makeup",
+  "Other custom request",
+];
+
 function PublicSite() {
   const [formStatus, setFormStatus] = useState("");
+  const [inquiryType, setInquiryType] = useState("");
+  const [garmentType, setGarmentType] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
+  const carouselRef = useRef(null);
+  const isPausedRef = useRef(false);
   const [whatsappBottom, setWhatsappBottom] = useState(24);
   const [showMobileBackToTop, setShowMobileBackToTop] = useState(false);
 
@@ -562,6 +621,52 @@ function PublicSite() {
     };
   }, []);
 
+  // Set initial scroll to the middle copy so user can scroll left
+  useEffect(() => {
+    const rail = carouselRef.current;
+    if (!rail) return;
+    // Wait one frame for layout
+    requestAnimationFrame(() => {
+      rail.scrollLeft = rail.scrollWidth / 3;
+    });
+  }, []);
+
+  // Auto-scroll via requestAnimationFrame
+  useEffect(() => {
+    const rail = carouselRef.current;
+    if (!rail) return;
+    let frameId;
+    const SPEED = 0.7; // px per frame
+
+    const tick = () => {
+      if (!isPausedRef.current) {
+        rail.scrollLeft += SPEED;
+        // Seamless loop: jump back when past 2nd copy
+        const oneThird = rail.scrollWidth / 3;
+        if (rail.scrollLeft >= oneThird * 2) {
+          rail.scrollLeft -= oneThird;
+        }
+      }
+      frameId = requestAnimationFrame(tick);
+    };
+
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+  }, []);
+
+  // Keeps infinite loop intact when user scrolls manually backwards
+  const handleCarouselScroll = useCallback(() => {
+    const rail = carouselRef.current;
+    if (!rail) return;
+    const oneThird = rail.scrollWidth / 3;
+    if (rail.scrollLeft < oneThird * 0.08) {
+      rail.scrollLeft += oneThird;
+    } else if (rail.scrollLeft > oneThird * 2.92) {
+      rail.scrollLeft -= oneThird;
+    }
+  }, []);
+
+
   const whatsappNumber = "27000000000";
   const whatsappText = encodeURIComponent(
     "Hello Likitu, I would like to submit an inquiry for a crochet or beauty consultation."
@@ -572,63 +677,70 @@ function PublicSite() {
 
     const form = event.currentTarget;
     const data = new FormData(form);
-    const references = data.getAll("reference").filter((file) => file?.name);
-    const referenceNames = references.map((file) => file.name);
-    const referenceText = referenceNames.length
-      ? referenceNames.join(", ")
-      : "I will share references in the chat";
-
-    const inquiry = {
-      full_name: data.get("fullName")?.toString().trim() || "",
-      email: data.get("email")?.toString().trim() || "",
-      whatsapp_number: data.get("phone")?.toString().trim() || "",
-      inquiry_type: data.get("inquiryType")?.toString() || "",
-      garment_or_service: data.get("garmentType")?.toString() || "",
-      preferred_sizing: data.get("size")?.toString() || "",
-      event_or_needed_by: data.get("neededBy")?.toString() || "",
-      inspiration_references: referenceNames,
-      design_description: data.get("details")?.toString().trim() || "",
-    };
-
-    const message = [
-      "Hello Likitu, I would like to make an inquiry.",
-      "",
-      `Full name: ${inquiry.full_name || "-"}`,
-      `Email: ${inquiry.email || "-"}`,
-      `WhatsApp number: ${inquiry.whatsapp_number || "-"}`,
-      `Inquiry type: ${inquiry.inquiry_type || "-"}`,
-      `Garment or service: ${inquiry.garment_or_service || "-"}`,
-      `Preferred sizing: ${inquiry.preferred_sizing || "-"}`,
-      `Event or needed by: ${inquiry.event_or_needed_by || "-"}`,
-      `Inspiration references: ${referenceText}`,
-      "",
-      "Design or booking details:",
-      inquiry.design_description || "-",
-    ].join("\n");
+    const references = data.getAll("reference").filter((file) => file && file.name && file.size > 0);
 
     setIsSubmitting(true);
-    setFormStatus("Sending your inquiry...");
+    setFormStatus("Uploading inspiration images...");
 
-    const { error } = await submitInquiryToSupabase(inquiry);
+    const uploadedUrls = [];
+    try {
+      for (const file of references) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from("inspiration")
+          .upload(fileName, file);
 
-    setIsSubmitting(false);
+        if (uploadError) {
+          throw new Error(`Failed to upload ${file.name}: ${uploadError.message}`);
+        }
 
-    if (error) {
-      setFormStatus("Your inquiry could not be sent. Please check the database setup and try again.");
+        const { data: urlData } = supabase.storage
+          .from("inspiration")
+          .getPublicUrl(fileName);
+        if (urlData?.publicUrl) {
+          uploadedUrls.push(urlData.publicUrl);
+        }
+      }
+    } catch (uploadErr) {
+      setIsSubmitting(false);
+      setFormStatus(uploadErr.message);
       return;
     }
 
-    setFormStatus("Inquiry sent. Continue the conversation on WhatsApp.");
+    const inquiry = {
+      full_name: data.get("fullName")?.toString().trim() || "",
+      whatsapp_number: data.get("phone")?.toString().trim() || "",
+      inquiry_type: data.get("inquiryType")?.toString() || "",
+      garment_or_service: data.get("garmentType")?.toString() || "",
+      preferred_sizing: data.get("size")?.toString() || "Not Applicable",
+      event_or_needed_by: data.get("neededBy")?.toString() || "",
+      inspiration_references: uploadedUrls,
+      design_description: data.get("details")?.toString().trim() || "",
+    };
+
+    setFormStatus("Sending your inquiry...");
+    const { error } = await submitInquiryToSupabase(inquiry);
+    setIsSubmitting(false);
+
+    if (error) {
+      console.error("Inquiry submission error:", error);
+      setFormStatus(`Your inquiry could not be sent: ${error.message}. Please check the database setup and try again.`);
+      return;
+    }
+
+    setFormStatus("Inquiry sent successfully. Thank you!");
+    setInquiryType("");
+    setGarmentType("");
     form.reset();
-    window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   };
 
   const handleCarouselInteractionStart = () => {
-    setIsCarouselPaused(true);
+    isPausedRef.current = true;
   };
 
   const handleCarouselInteractionEnd = () => {
-    setIsCarouselPaused(false);
+    isPausedRef.current = false;
   };
 
   return (
@@ -673,7 +785,12 @@ function PublicSite() {
           </div>
           <div className="hero__content reveal">
             <p className="eyebrow">Gqeberha · Crochet & beauty consultation</p>
-            <h1 id="hero-title">{preventOrphan("Crochet garments elegantly made to suit your unique style.")}</h1>
+            <h1 id="hero-title">
+              Crochet garments<br />
+              elegantly made<br />
+              to suit your<br />
+              unique style.
+            </h1>
             <p>
               Handcrafted crochet fashion and beauty experiences designed with care and intention.
             </p>
@@ -697,21 +814,28 @@ function PublicSite() {
           </div>
         </section>
 
-        <section className="product-carousel" aria-labelledby="product-carousel-title">
+        <section
+          className="product-carousel"
+          aria-labelledby="product-carousel-title"
+          onMouseEnter={handleCarouselInteractionStart}
+          onMouseLeave={handleCarouselInteractionEnd}
+        >
           <div className="product-carousel__head reveal">
             <p className="eyebrow">Browse handmade pieces and inquire from the product page.</p>
             <h2 id="product-carousel-title">Selected pieces</h2>
           </div>
           <div
-            className={`product-carousel__rail ${isCarouselPaused ? "is-paused" : ""}`}
+            ref={carouselRef}
+            className="product-carousel__rail"
             aria-label="Product carousel"
+            onScroll={handleCarouselScroll}
             onPointerDown={handleCarouselInteractionStart}
             onPointerUp={handleCarouselInteractionEnd}
             onPointerCancel={handleCarouselInteractionEnd}
             onTouchStart={handleCarouselInteractionStart}
             onTouchEnd={handleCarouselInteractionEnd}
           >
-            {[...collections, ...collections].map((item, index) => (
+            {[...collections, ...collections, ...collections].map((item, index) => (
               <a className="product-tile" href={`/products/${item.id}`} key={`${item.id}-${index}`}>
                 <img src={item.image} alt={`${item.title} by Likitu`} />
                 <span>{item.type}</span>
@@ -853,59 +977,61 @@ function PublicSite() {
                   <input name="fullName" type="text" required />
                 </label>
                 <label>
-                  Email address
-                  <input name="email" type="email" required />
-                </label>
-                <label>
                   WhatsApp number
                   <input name="phone" type="tel" placeholder="+27XXXXXXXXX or 0XXXXXXXXX" pattern="(\+27|0)[0-9]{9}" required />
                 </label>
                 <label>
                   Inquiry type
-                  <select name="inquiryType" required defaultValue="">
+                  <select
+                    name="inquiryType"
+                    required
+                    value={inquiryType}
+                    onChange={(e) => {
+                      setInquiryType(e.target.value);
+                      setGarmentType("");
+                    }}
+                  >
                     <option value="" disabled>Select one</option>
-                    <option>Custom Crochet Garment</option>
-                    <option>Makeup Service</option>
+                    <option value="Custom Crochet Garment">Custom Crochet Garment</option>
+                    <option value="Makeup Service">Makeup Service</option>
                   </select>
                 </label>
                 <label>
                   Garment or service
-                  <select name="garmentType" required defaultValue="">
-                    <option value="" disabled>Select one</option>
-                    <option>Crochet skirt</option>
-                    <option>Crochet top</option>
-                    <option>Crochet dress</option>
-                    <option>Crochet shorts</option>
-                    <option>Crochet pants</option>
-                    <option>Crochet two-piece set</option>
-                    <option>Crochet beach cover-up</option>
-                    <option>Crochet bikini or swim set</option>
-                    <option>Crochet cardigan</option>
-                    <option>Crochet bucket hat</option>
-                    <option>Crochet headscarf</option>
-                    <option>Crochet bag</option>
-                    <option>Event makeup</option>
-                    <option>Photoshoot makeup</option>
-                    <option>Soft glam makeup</option>
-                    <option>Bridal makeup</option>
-                    <option>Other custom request</option>
+                  <select
+                    name="garmentType"
+                    required
+                    value={garmentType}
+                    onChange={(e) => setGarmentType(e.target.value)}
+                  >
+                    <option value="" disabled>
+                      {inquiryType ? "Select one" : "Select inquiry type first"}
+                    </option>
+                    {inquiryType === "Custom Crochet Garment" && crochetGarmentOptions.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                    {inquiryType === "Makeup Service" && makeupServiceOptions.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
                   </select>
                 </label>
+                {inquiryType === "Custom Crochet Garment" && (
+                  <label>
+                    Preferred sizing
+                    <select name="size" required defaultValue="">
+                      <option value="" disabled>Select one</option>
+                      <option>XS</option>
+                      <option>Small</option>
+                      <option>Medium</option>
+                      <option>Large</option>
+                      <option>XL</option>
+                      <option>Custom Measurements</option>
+                      <option>Not Applicable</option>
+                    </select>
+                  </label>
+                )}
                 <label>
-                  Preferred sizing
-                  <select name="size" required defaultValue="">
-                    <option value="" disabled>Select one</option>
-                    <option>XS</option>
-                    <option>Small</option>
-                    <option>Medium</option>
-                    <option>Large</option>
-                    <option>XL</option>
-                    <option>Custom Measurements</option>
-                    <option>Not Applicable</option>
-                  </select>
-                </label>
-                <label>
-                  When do you need the item?
+                  Needed by
                   <input name="neededBy" type="date" />
                 </label>
                 <label className="form-grid__wide file-field">
