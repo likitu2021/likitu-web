@@ -25,6 +25,10 @@
 
 * {
   box-sizing: border-box;
+  hyphens: none !important;
+  -webkit-hyphens: none !important;
+  -moz-hyphens: none !important;
+  -ms-hyphens: none !important;
 }
 
 html {
@@ -462,7 +466,7 @@ blockquote {
   min-height: 100svh;
   display: grid;
   align-items: center;
-  padding: 112px max(28px, calc((100vw - 1320px) / 2)) 42px;
+  padding: clamp(44px, 5vw, 64px) max(28px, calc((100vw - 1320px) / 2)) 42px;
   color: var(--soft-white);
   isolation: isolate;
 }
@@ -544,10 +548,9 @@ h1 {
 }
 
 .hero__content h1 {
-  font-size: clamp(2.25rem, 5.5vw, 4.2rem);
-  max-width: 18ch;
-  text-wrap: balance;
-  hyphens: auto;
+  font-size: clamp(2.75rem, 6.5vw, 5.2rem);
+  max-width: none;
+  hyphens: none;
 }
 
 h2 {
@@ -713,15 +716,21 @@ h3 {
   grid-auto-flow: column;
   grid-auto-columns: minmax(240px, 22vw);
   gap: 18px;
-  width: max-content;
-  padding: 0 18px 12px;
-  animation: productRailSlide 34s linear infinite;
-  touch-action: pan-x;
+  padding: 0 18px 24px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  cursor: grab;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.product-carousel__rail.is-paused,
-.product-carousel:hover .product-carousel__rail {
-  animation-play-state: paused;
+.product-carousel__rail::-webkit-scrollbar {
+  display: none;
+}
+
+.product-carousel__rail:active {
+  cursor: grabbing;
 }
 
 .product-tile {
@@ -1591,6 +1600,10 @@ textarea {
   .collection-card h3 {
     text-align: left;
   }
+
+  .collection-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 
@@ -1961,4 +1974,40 @@ textarea {
   .admin-edit-card {
     grid-template-columns: 1fr;
   }
+}
+
+.admin-inspiration-gallery {
+  margin-top: 14px;
+}
+
+.admin-inspiration-gallery h4 {
+  margin-bottom: 8px;
+  color: var(--warm-grey);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.admin-inspiration-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-link {
+  display: inline-block;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  background: var(--soft-white);
+  color: var(--black);
+  text-decoration: none;
+  font-size: 0.74rem;
+  font-weight: 500;
+  transition: border-color 260ms var(--ease), background 260ms var(--ease);
+}
+
+.admin-link:hover {
+  border-color: var(--black);
+  background: var(--black);
+  color: #ffffff;
 }
