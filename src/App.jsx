@@ -258,8 +258,59 @@ function AdminApp() {
         </a>
         <nav className="admin-nav" aria-label="Admin sections">
           {adminTabs.map((tab) => (
-            <button className={activeTab === tab ? "is-active" : ""} type="button" key={tab} onClick={() => setActiveTab(tab)}>
-              {tab}
+            <button
+              className={activeTab === tab ? "is-active" : ""}
+              type="button"
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+            >
+              <span className="admin-nav__icon" aria-hidden="true">
+                {tab === "Overview" && (
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 11.5L12 4l8 7.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+                    <path d="M9.5 21v-7.2c0-.66.54-1.2 1.2-1.2h2.6c.66 0 1.2.54 1.2 1.2V21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                  </svg>
+                )}
+                {tab === "Inquiries" && (
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 14.5V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                    <path d="M8 10h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                    <path d="M6 19h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                    <path d="M10 19c0 1.1-.9 2-2 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                    <path d="M14 19c0 1.1.9 2 2 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                  </svg>
+                )}
+                {tab === "Collections" && (
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 8l8-4 8 4-8 4-8-4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+                    <path d="M4 8v8l8 4 8-4V8" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+                    <path d="M12 12v8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                  </svg>
+                )}
+                {tab === "Makeup" && (
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 3h6l1 6H8l1-6Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+                    <path d="M7 9l-1 12h12l-1-12" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+                    <path d="M9.5 13h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                    <path d="M10 16h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                  </svg>
+                )}
+                {tab === "Content" && (
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Z" stroke="currentColor" strokeWidth="1.8"/>
+                    <path d="M8 7h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                    <path d="M8 11h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                    <path d="M8 15h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                  </svg>
+                )}
+                {tab === "Settings" && (
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" strokeWidth="1.8"/>
+                    <path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.02.02-1.6 2.77-.03-.01a1.8 1.8 0 0 0-2.02.6 1.8 1.8 0 0 0-.33 2.02v.03H8.3v-.03a1.8 1.8 0 0 0-.33-2.02 1.8 1.8 0 0 0-2.02-.6l-.03.01-1.6-2.77.02-.02A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.76-1.2H2.8V9.2h.04A1.8 1.8 0 0 0 4.6 8a1.8 1.8 0 0 0-.36-1.98l-.02-.02 1.6-2.77.03.01a1.8 1.8 0 0 0 2.02-.6A1.8 1.8 0 0 0 8.3 1.6V1.57h7.4V1.6c0 .75.28 1.45.78 1.98.5.53 1.2.8 1.95.8.23 0 .46-.03.67-.1l.03-.01 1.6 2.77-.02.02A1.8 1.8 0 0 0 19.4 8c.76.35 1.3 1.08 1.32 1.98v.04h.04v4.6h-.04v.04c-.02.9-.56 1.63-1.32 1.98Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round"/>
+                  </svg>
+                )}
+              </span>
+              <span className="admin-nav__label">{tab}</span>
             </button>
           ))}
         </nav>
@@ -667,10 +718,7 @@ function PublicSite() {
   }, []);
 
 
-  const whatsappNumber = "27000000000";
-  const whatsappText = encodeURIComponent(
-    "Hello Likitu, I would like to submit an inquiry for a crochet or beauty consultation."
-  );
+
 
   const handleInquirySubmit = async (event) => {
     event.preventDefault();
