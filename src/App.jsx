@@ -5,6 +5,7 @@ import "./assets/styles/site.css";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import likituLogo from "./assets/likitu-logo.svg";
 import likituLogoWhite from "./assets/likitu-logo-white.svg";
+import likituIcon from "./assets/likitu-icon.svg";
 import heroImage from "./assets/media/editorial-hero.jpg";
 import portraitImage from "./assets/media/editorial-portrait.jpg";
 import founderImage from "./assets/media/founder-liyema.jpg";
@@ -13,6 +14,11 @@ import bagSculpted from "./assets/media/bag-sculpted-noir.jpg";
 import bagPetit from "./assets/media/bag-petit-bucket.jpg";
 import topOcean from "./assets/media/top-ocean.jpg";
 import skirtSpectrum from "./assets/media/skirt-spectrum.jpg";
+
+import AdminCollections from "./components/AdminCollections";
+import { fetchAdminProducts, fetchProductBySlugOrId, fetchPublicProducts } from "./lib/products";
+import { resolveProductCardImage } from "./lib/productUtils";
+
 
 const services = [
   ["Crocheting", "Custom crochet garments and fashion pieces shaped around your sizing, colour direction, and occasion."],
@@ -25,52 +31,22 @@ function preventOrphan(text) {
   return text.replace(/\s+([^\s]+)$/, "\u00A0$1");
 }
 
-const collections = [
-  {
-    id: "marigold-carryall",
-    title: "Marigold Carryall",
-    type: "Crochet bag",
-    image: bagMarigold,
-    description: "A sculptural handmade carryall with floral detail and soft structure.",
-    variants: ["Marigold floral", "Plain marigold", "Side-carry silhouette"],
-  },
-  {
-    id: "sculpted-shoulder-bag",
-    title: "Sculpted Shoulder Bag",
-    type: "Statement shoulder bag",
-    image: bagSculpted,
-    description: "One refined shoulder bag silhouette available in noir, nude, and vermilion colourways.",
-    variants: ["Noir", "Nude", "Vermilion"],
-  },
-  {
-    id: "petit-bucket",
-    title: "Petit Bucket",
-    type: "Compact crochet bag",
-    image: bagPetit,
-    description: "A compact bucket form for delicate everyday carrying.",
-    variants: ["Neutral bucket"],
-  },
-  {
-    id: "ribbon-wrap-top",
-    title: "Ribbon Wrap Top",
-    type: "Crochet top",
-    image: topOcean,
-    description: "A custom wrap top available in ocean, lime, and made-to-order colour directions.",
-    variants: ["Ocean", "Lime", "Custom colour"],
-  },
-  {
-    id: "spectrum-fringe",
-    title: "Spectrum Fringe",
-    type: "Custom skirt piece",
-    image: skirtSpectrum,
-    description: "A colourful fringe skirt designed for movement and occasion styling.",
-    variants: ["Spectrum fringe"],
-  },
-];
+// Client-side product data is now fetched from Supabase.
+// Kept imports above for static fallback images/hero sections.
 
-function getProductById(productId) {
-  return collections.find((item) => item.id === productId) || null;
+const FALLBACK_PRODUCT_IMAGES = {
+  "marigold-carryall": bagMarigold,
+  "sculpted-shoulder-bag": bagSculpted,
+  "petit-bucket": bagPetit,
+  "ribbon-wrap-top": topOcean,
+  "spectrum-fringe": skirtSpectrum,
+};
+
+function getPublicProductCardImage(product) {
+  return resolveProductCardImage(product, FALLBACK_PRODUCT_IMAGES);
 }
+
+
 
 const processSteps = ["Consultation", "Design Discussion", "Creation", "Approval", "Delivery"];
 
@@ -82,11 +58,6 @@ const testimonials = [
 
 const adminTabs = ["Overview", "Inquiries", "Collections", "Makeup", "Content", "Settings"];
 
-const initialAdminCollections = [
-  { id: "marigold", title: "Marigold Carryall", price: "From R650", description: "Sculptural crochet bag with floral detail.", status: "Published" },
-  { id: "ocean", title: "Ocean Wrap", price: "From R480", description: "Handmade wrap top for custom colourways.", status: "Draft" },
-];
-
 const initialContent = {
   aboutTitle: "Founded by Liyema Kabi in Gqeberha, South Africa.",
   aboutBody: "Likitu Fashion & Beauty creates handcrafted crochet garments and beauty experiences with care, confidence, and intention.",
@@ -94,8 +65,6 @@ const initialContent = {
   instagram: "@likitu",
   email: "hello@likitu.com",
 };
-
-const emptyCollection = { title: "", price: "", description: "", status: "Draft" };
 
 function formatDate(value) {
   if (!value) return "Not set";
@@ -130,9 +99,9 @@ function AdminApp() {
   const [activeTab, setActiveTab] = useState("Overview");
   const [inquiries, setInquiries] = useState([]);
   const [dataStatus, setDataStatus] = useState("No inquiries loaded yet.");
-  const [collectionsDraft, setCollectionsDraft] = useState(initialAdminCollections);
-  const [newCollection, setNewCollection] = useState(emptyCollection);
+  const [productCount, setProductCount] = useState(0);
   const [contentDraft, setContentDraft] = useState(initialContent);
+  const [isLoadingInquiries, setIsLoadingInquiries] = useState(false);
 
   const counts = useMemo(() => getInquiryCounts(inquiries), [inquiries]);
   const recentInquiries = inquiries.slice(0, 5);
@@ -140,18 +109,32 @@ function AdminApp() {
 
   const loadInquiries = useCallback(async () => {
     setDataStatus("Loading inquiries...");
-    const { data, error } = await supabase
-      .from("inquiries")
-      .select("id, full_name, whatsapp_number, inquiry_type, garment_or_service, preferred_sizing, event_or_needed_by, inspiration_references, design_description, created_at")
-      .order("created_at", { ascending: false });
+    setIsLoadingInquiries(true);
+    try {
+      const { data, error } = await supabase
+        .from("inquiries")
+        .select("id, full_name, whatsapp_number, inquiry_type, garment_or_service, preferred_sizing, event_or_needed_by, inspiration_references, design_description, created_at")
+        .order("created_at", { ascending: false });
 
-    if (error) {
-      setDataStatus(`Could not load inquiries: ${error.message}`);
-      return;
+      if (error) {
+        setDataStatus(`Could not load inquiries: ${error.message}`);
+        return;
+      }
+
+      setInquiries(data || []);
+      setDataStatus(data?.length ? "Inquiries loaded." : "No inquiries yet.");
+    } finally {
+      setIsLoadingInquiries(false);
     }
+  }, []);
 
-    setInquiries(data || []);
-    setDataStatus(data?.length ? "Inquiries loaded." : "No inquiries yet.");
+  const loadProductCount = useCallback(async () => {
+    try {
+      const products = await fetchAdminProducts();
+      setProductCount(products.length);
+    } catch {
+      setProductCount(0);
+    }
   }, []);
 
   useEffect(() => {
@@ -162,17 +145,23 @@ function AdminApp() {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setAuthStatus(data.session ? "Signed in" : "Please sign in to continue.");
-      if (data.session) loadInquiries();
+      if (data.session) {
+        loadInquiries();
+        loadProductCount();
+      }
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
       setAuthStatus(nextSession ? "Signed in" : "Please sign in to continue.");
-      if (nextSession) loadInquiries();
+      if (nextSession) {
+        loadInquiries();
+        loadProductCount();
+      }
     });
 
     return () => listener.subscription.unsubscribe();
-  }, [loadInquiries]);
+  }, [loadInquiries, loadProductCount]);
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -192,24 +181,6 @@ function AdminApp() {
     await supabase.auth.signOut();
     setInquiries([]);
     setActiveTab("Overview");
-  };
-
-  const handleCollectionSubmit = (event) => {
-    event.preventDefault();
-    const collection = {
-      ...newCollection,
-      id: `${newCollection.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`,
-    };
-    setCollectionsDraft((current) => [collection, ...current]);
-    setNewCollection(emptyCollection);
-  };
-
-  const updateCollection = (id, field, value) => {
-    setCollectionsDraft((current) => current.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
-  };
-
-  const deleteCollection = (id) => {
-    setCollectionsDraft((current) => current.filter((item) => item.id !== id));
   };
 
   if (!isSupabaseConfigured) {
@@ -323,7 +294,37 @@ function AdminApp() {
             <p className="admin-kicker">Dashboard</p>
             <h1>{activeTab}</h1>
           </div>
-          <button className="admin-button" type="button" onClick={loadInquiries}>Refresh inquiries</button>
+          <button
+            className={`admin-refresh-button${isLoadingInquiries ? " is-loading" : ""}`}
+            type="button"
+            onClick={loadInquiries}
+            aria-label="Refresh inquiries"
+            title="Refresh inquiries"
+            disabled={isLoadingInquiries}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path
+                d="M21 12a9 9 0 1 1-2.64-6.36"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+              <path
+                d="M21 3v6h-6"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M3.5 10.5h5.2"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                opacity="0"
+              />
+            </svg>
+          </button>
         </header>
 
         {activeTab === "Overview" && (
@@ -332,7 +333,7 @@ function AdminApp() {
               <article><span>Total inquiries</span><strong>{counts.total}</strong></article>
               <article><span>Custom design requests</span><strong>{counts.custom}</strong></article>
               <article><span>Makeup bookings</span><strong>{counts.makeup}</strong></article>
-              <article><span>Collections drafted</span><strong>{collectionsDraft.length}</strong></article>
+              <article><span>Products</span><strong>{productCount}</strong></article>
             </div>
             <AdminInquiryList title="Recent inquiries" inquiries={recentInquiries} emptyText={dataStatus} />
           </section>
@@ -340,25 +341,7 @@ function AdminApp() {
 
         {activeTab === "Inquiries" && <AdminInquiryList title="All submitted inquiries" inquiries={inquiries} emptyText={dataStatus} />}
 
-        {activeTab === "Collections" && (
-          <section className="admin-panel-stack">
-            <AdminCollectionForm newCollection={newCollection} setNewCollection={setNewCollection} onSubmit={handleCollectionSubmit} />
-            <div className="admin-card-list">
-              {collectionsDraft.map((item) => (
-                <article className="admin-edit-card" key={item.id}>
-                  <input value={item.title} onChange={(event) => updateCollection(item.id, "title", event.target.value)} aria-label="Collection title" />
-                  <input value={item.price} onChange={(event) => updateCollection(item.id, "price", event.target.value)} aria-label="Collection price" />
-                  <textarea value={item.description} onChange={(event) => updateCollection(item.id, "description", event.target.value)} aria-label="Collection description" />
-                  <select value={item.status} onChange={(event) => updateCollection(item.id, "status", event.target.value)} aria-label="Collection status">
-                    <option>Draft</option>
-                    <option>Published</option>
-                  </select>
-                  <button className="admin-button" type="button" onClick={() => deleteCollection(item.id)}>Delete</button>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
+        {activeTab === "Collections" && <AdminCollections />}
 
         {activeTab === "Makeup" && <AdminInquiryList title="Makeup booking requests" inquiries={makeupBookings} emptyText="No makeup bookings yet." />}
 
@@ -446,48 +429,109 @@ function AdminInquiryList({ title, inquiries, emptyText }) {
   );
 }
 
-function AdminCollectionForm({ newCollection, setNewCollection, onSubmit }) {
-  return (
-    <form className="admin-form-panel" onSubmit={onSubmit}>
-      <div className="admin-panel-head">
-        <h2>Add crochet collection</h2>
-        <span>Draft CMS</span>
-      </div>
-      <label>
-        Title
-        <input value={newCollection.title} onChange={(event) => setNewCollection({ ...newCollection, title: event.target.value })} required />
-      </label>
-      <label>
-        Price
-        <input value={newCollection.price} onChange={(event) => setNewCollection({ ...newCollection, price: event.target.value })} placeholder="From R650" />
-      </label>
-      <label>
-        Description
-        <textarea rows="4" value={newCollection.description} onChange={(event) => setNewCollection({ ...newCollection, description: event.target.value })} required />
-      </label>
-      <label>
-        Upload image
-        <input type="file" accept="image/*" />
-      </label>
-      <button className="admin-button admin-button--dark" type="submit">Add collection</button>
-    </form>
-  );
-}
+function ProductInquiryPage({ slugOrId }) {
+  const [product, setProduct] = useState(null);
+  const [productStatus, setProductStatus] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingFading, setIsLoadingFading] = useState(false);
 
-function ProductInquiryPage({ product }) {
+  useEffect(() => {
+    let active = true;
+    let fadeTimeoutId;
+
+    async function loadProduct() {
+      setIsLoading(true);
+      setIsLoadingFading(false);
+      setProductStatus("");
+
+      try {
+        const row = await fetchProductBySlugOrId(slugOrId);
+        if (!active) return;
+
+        setProduct(row);
+        setProductStatus(row ? "Product loaded." : "Product not found.");
+      } catch (error) {
+        if (!active) return;
+
+        setProduct(null);
+        setProductStatus(`Could not load product: ${error.message}`);
+      } finally {
+        if (!active) return;
+
+        // Smooth transition: fade overlay out, then unmount it.
+        setIsLoadingFading(true);
+        fadeTimeoutId = window.setTimeout(() => {
+          if (!active) return;
+          setIsLoading(false);
+        }, 240);
+      }
+    }
+
+    loadProduct();
+
+    return () => {
+      active = false;
+      if (fadeTimeoutId) window.clearTimeout(fadeTimeoutId);
+    };
+  }, [slugOrId]);
+
   const [formStatus, setFormStatus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (isLoading) {
+    return (
+      <main
+        className={`product-loading-overlay${isLoadingFading ? " is-fading" : ""}`}
+        role="status"
+        aria-live="polite"
+      >
+        <div className="product-loading-icon-wrap" aria-hidden="true">
+          <img className="product-loading-icon" src={likituIcon} alt="" />
+        </div>
+      </main>
+    );
+  }
+
+  const BackToLinkIcon = () => (
+    // Arrow with stem (returns "back" direction clearly)
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M10 19 3 12l7-7"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M3 12h18"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
 
   if (!product) {
     return (
       <main className="product-page product-page--missing">
-        <a className="product-back-link" href="/">Back to home</a>
-        <h1>Product not found.</h1>
+        <a className="product-back-link" href="/" aria-label="Back to home">
+          <BackToLinkIcon />
+        </a>
+        <h1>{productStatus || "Product not found."}</h1>
       </main>
     );
   }
 
   const handleProductInquiry = async (event) => {
+
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
@@ -548,15 +592,25 @@ function ProductInquiryPage({ product }) {
 
   return (
     <main className="product-page">
-      <a className="product-back-link" href="/">Back to home</a>
+      <a className="product-back-link" href="/" aria-label="Back to home">
+        <BackToLinkIcon />
+      </a>
       <section className="product-detail">
         <figure>
-          <img src={product.image} alt={`${product.title} by Likitu`} />
+          <img src={getPublicProductCardImage(product)} alt={`${product.title} by Likitu`} />
         </figure>
         <div className="product-detail__content">
           <p className="eyebrow">{product.type}</p>
           <h1>{product.title}</h1>
+          {product.price && <p className="product-detail__price">{product.price}</p>}
           <p>{product.description}</p>
+          {product.available_colors?.length > 0 && (
+            <p className="product-detail__meta">Available colors: {product.available_colors.join(", ")}</p>
+          )}
+          {product.available_sizing?.length > 0 && (
+            <p className="product-detail__meta">Available sizing: {product.available_sizing.join(", ")}</p>
+          )}
+
           <form className="inquiry-form product-inquiry-form" onSubmit={handleProductInquiry}>
             <div className="form-grid">
               <label>
@@ -634,8 +688,16 @@ function PublicSite() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const carouselRef = useRef(null);
   const isPausedRef = useRef(false);
+  const isUserInteractingRef = useRef(false);
+  const railOneThirdRef = useRef(0);
+  const scrollEndTimeoutRef = useRef(null);
+
   const [whatsappBottom, setWhatsappBottom] = useState(24);
   const [showMobileBackToTop, setShowMobileBackToTop] = useState(false);
+
+  const [products, setProducts] = useState([]);
+  const [productsStatus, setProductsStatus] = useState("");
+
 
   useEffect(() => {
     const handleScroll = () => {
@@ -672,28 +734,45 @@ function PublicSite() {
     };
   }, []);
 
+  const loadProducts = useCallback(async () => {
+    const publicProducts = await fetchPublicProducts();
+    setProducts(publicProducts);
+    // No blocking “Loading products…” UI; just set an appropriate end state.
+    setProductsStatus(publicProducts.length ? "" : "No published products.");
+  }, []);
+
+  useEffect(() => {
+    // Data fetch on mount — intentional async load from Supabase.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadProducts();
+  }, [loadProducts]);
+
   // Set initial scroll to the middle copy so user can scroll left
   useEffect(() => {
     const rail = carouselRef.current;
-    if (!rail) return;
-    // Wait one frame for layout
+    if (!rail || products.length === 0) return;
     requestAnimationFrame(() => {
       rail.scrollLeft = rail.scrollWidth / 3;
     });
-  }, []);
+  }, [products.length]);
 
-  // Auto-scroll via requestAnimationFrame
+
+  // Auto-scroll via requestAnimationFrame (only pauses on hover/focus/drag).
+  // Must re-run after the carousel rail exists (after products load/render).
   useEffect(() => {
     const rail = carouselRef.current;
-    if (!rail) return;
+    if (!rail) return undefined;
+
     let frameId;
     const SPEED = 0.7; // px per frame
 
     const tick = () => {
-      if (!isPausedRef.current) {
+      if (!isPausedRef.current && !isUserInteractingRef.current) {
+        const oneThird = railOneThirdRef.current || (rail.scrollWidth / 3);
+        railOneThirdRef.current = oneThird;
+
         rail.scrollLeft += SPEED;
         // Seamless loop: jump back when past 2nd copy
-        const oneThird = rail.scrollWidth / 3;
         if (rail.scrollLeft >= oneThird * 2) {
           rail.scrollLeft -= oneThird;
         }
@@ -703,19 +782,23 @@ function PublicSite() {
 
     frameId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameId);
-  }, []);
+  }, [products.length]);
 
-  // Keeps infinite loop intact when user scrolls manually backwards
-  const handleCarouselScroll = useCallback(() => {
+  const clampRailLoop = useCallback(() => {
     const rail = carouselRef.current;
     if (!rail) return;
-    const oneThird = rail.scrollWidth / 3;
+
+    const oneThird = railOneThirdRef.current || (rail.scrollWidth / 3);
+    railOneThirdRef.current = oneThird;
+
+    // Fix only at the end of user interaction to avoid jitter.
     if (rail.scrollLeft < oneThird * 0.08) {
       rail.scrollLeft += oneThird;
     } else if (rail.scrollLeft > oneThird * 2.92) {
       rail.scrollLeft -= oneThird;
     }
   }, []);
+
 
 
 
@@ -785,11 +868,24 @@ function PublicSite() {
 
   const handleCarouselInteractionStart = () => {
     isPausedRef.current = true;
+    isUserInteractingRef.current = true;
+    if (scrollEndTimeoutRef.current) {
+      window.clearTimeout(scrollEndTimeoutRef.current);
+      scrollEndTimeoutRef.current = null;
+    }
   };
 
   const handleCarouselInteractionEnd = () => {
+    // Always resume quickly; if user continues dragging, start will re-pause.
     isPausedRef.current = false;
+    isUserInteractingRef.current = false;
+
+    if (scrollEndTimeoutRef.current) {
+      window.clearTimeout(scrollEndTimeoutRef.current);
+      scrollEndTimeoutRef.current = null;
+    }
   };
+
 
   return (
     <div className="site-shell">
@@ -876,21 +972,34 @@ function PublicSite() {
             ref={carouselRef}
             className="product-carousel__rail"
             aria-label="Product carousel"
-            onScroll={handleCarouselScroll}
+            onScroll={() => {
+              if (scrollEndTimeoutRef.current) window.clearTimeout(scrollEndTimeoutRef.current);
+              scrollEndTimeoutRef.current = window.setTimeout(() => {
+                if (isPausedRef.current || isUserInteractingRef.current) return;
+                clampRailLoop();
+              }, 140);
+            }}
             onPointerDown={handleCarouselInteractionStart}
             onPointerUp={handleCarouselInteractionEnd}
             onPointerCancel={handleCarouselInteractionEnd}
             onTouchStart={handleCarouselInteractionStart}
             onTouchEnd={handleCarouselInteractionEnd}
           >
-            {[...collections, ...collections, ...collections].map((item, index) => (
-              <a className="product-tile" href={`/products/${item.id}`} key={`${item.id}-${index}`}>
-                <img src={item.image} alt={`${item.title} by Likitu`} />
-                <span>{item.type}</span>
-                <h3>{item.title}</h3>
-                {item.variants?.length > 1 && <p>{item.variants.length} colourways</p>}
-              </a>
-            ))}
+            {products.length === 0 ? (
+              <p className="admin-note product-carousel__empty">{productsStatus}</p>
+            ) : (
+              [...products, ...products, ...products].map((item, index) => (
+                <a
+                  className="product-tile"
+                  href={item.slug ? `/products/${item.slug}` : `/products/${item.id}`}
+                  key={`${item.id}-${index}`}
+                >
+                  <img src={getPublicProductCardImage(item)} alt={`${item.title} by Likitu`} />
+                  <span>{item.type}</span>
+                  <h3>{item.title}</h3>
+                </a>
+              ))
+            )}
           </div>
         </section>
 
@@ -997,16 +1106,29 @@ function PublicSite() {
             <h2 id="collections-title">Featured collections</h2>
           </div>
           <div className="collection-grid">
-            {collections.map((item, index) => (
-              <a className="collection-card reveal" href={`/products/${item.id}`} key={item.title} data-featured={index === 0}>
-                <img src={item.image} alt={`${item.title} by Likitu`} />
-                <div>
-                  <span>{item.type}</span>
-                  <h3>{item.title}</h3>
-                </div>
-              </a>
-            ))}
+            {products.length === 0 ? (
+              <p className="admin-note">{productsStatus}</p>
+            ) : (
+              products
+                .filter((p) => p.status === "Published")
+                .sort((a, b) => Number(b.is_featured) - Number(a.is_featured) || 0)
+                .map((item) => (
+                  <a
+                    className="collection-card reveal"
+                    href={item.slug ? `/products/${item.slug}` : `/products/${item.id}`}
+                    key={item.id}
+                    data-featured={item.is_featured}
+                  >
+                    <img src={getPublicProductCardImage(item)} alt={`${item.title} by Likitu`} />
+                    <div>
+                      <span>{item.type}</span>
+                      <h3>{item.title}</h3>
+                    </div>
+                  </a>
+                ))
+            )}
           </div>
+
         </section>
 
         <section className="inquiry section-grid" id="inquiry" aria-labelledby="inquiry-title">
@@ -1154,11 +1276,15 @@ function PublicSite() {
 function App() {
   const { pathname } = window.location;
   const isAdminRoute = pathname.startsWith("/admin");
-  const productMatch = pathname.match(/^\/products\/([^/]+)$/);
+  const isProductRoute = pathname.startsWith("/products/");
 
   if (isAdminRoute) return <AdminApp />;
-  if (productMatch) return <ProductInquiryPage product={getProductById(productMatch[1])} />;
+  if (isProductRoute) {
+    const slugOrId = pathname.replace(/^\/products\//, "");
+    return <ProductInquiryPage slugOrId={slugOrId} />;
+  }
   return <PublicSite />;
 }
+
 
 export default App;
