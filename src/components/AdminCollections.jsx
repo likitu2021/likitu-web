@@ -214,12 +214,14 @@ export default function AdminCollections() {
   const [drafts, setDrafts] = useState([]);
   const [status, setStatus] = useState("Loading products...");
   const [savingId, setSavingId] = useState(null);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeDraft, setActiveDraft] = useState(null);
 
   const loadProducts = useCallback(async () => {
     setStatus("Loading products...");
+    setIsLoadingProducts(true);
     try {
       const products = await fetchAdminProducts();
       setDrafts(products.map(draftFromProduct));
@@ -227,6 +229,8 @@ export default function AdminCollections() {
     } catch (error) {
       setStatus(`Could not load products: ${error.message}`);
       setDrafts([]);
+    } finally {
+      setIsLoadingProducts(false);
     }
   }, []);
 
@@ -317,8 +321,7 @@ export default function AdminCollections() {
     <section className="admin-panel-stack">
       <div className="admin-panel-head admin-collections-head">
         <div>
-          <h2>Products</h2>
-          <p className="admin-note">{status}</p>
+          <p className={`admin-note admin-products-status${isLoadingProducts ? " is-loading" : ""}`}>{status}</p>
         </div>
         <button className="admin-button admin-button--dark admin-add-product" type="button" onClick={handleAddProduct}>
           <span aria-hidden="true">+</span>
@@ -326,12 +329,12 @@ export default function AdminCollections() {
         </button>
       </div>
 
-      <div className="admin-product-list admin-product-list--simple">
-        {listItems.length === 0 ? (
-          <p className="admin-note">No products yet. Use “Add new product” to create one.</p>
+      <div className={`admin-product-list admin-product-list--simple${isLoadingProducts ? " is-loading" : " is-ready"}`}>
+        {isLoadingProducts && listItems.length === 0 ? null : listItems.length === 0 ? (
+          <p className="admin-note admin-product-empty">No products yet. Use “Add new product” to create one.</p>
         ) : (
           listItems.map((draft, index) => (
-            <div className="admin-product-row" key={draft.id || `new-${index}`}>
+            <div className="admin-product-row" key={draft.id || `new-${index}`} style={{ "--delay": `${index * 55}ms` }}>
               <span className="admin-product-row__title">{draft.title || "Untitled"}</span>
               <button
                 type="button"
