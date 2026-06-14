@@ -42,8 +42,103 @@ const FALLBACK_PRODUCT_IMAGES = {
   "spectrum-fringe": skirtSpectrum,
 };
 
+const FALLBACK_PRODUCTS = [
+  {
+    id: "marigold-carryall",
+    slug: "marigold-carryall",
+    title: "Marigold Carryall",
+    type: "Crochet bag",
+    description: "A sculptural handmade carryall with floral detail and soft structure.",
+    price: "From R650",
+    status: "Published",
+    is_featured: true,
+    available_sizing: ["One size"],
+    available_colors: ["Marigold floral", "Plain marigold"],
+  },
+  {
+    id: "sculpted-shoulder-bag",
+    slug: "sculpted-shoulder-bag",
+    title: "Sculpted Shoulder Bag",
+    type: "Statement shoulder bag",
+    description: "A refined shoulder bag silhouette available in noir, nude, and vermilion colourways.",
+    price: "From R620",
+    status: "Published",
+    is_featured: true,
+    available_sizing: ["One size"],
+    available_colors: ["Noir", "Nude", "Vermilion"],
+  },
+  {
+    id: "petit-bucket",
+    slug: "petit-bucket",
+    title: "Petit Bucket",
+    type: "Compact crochet bag",
+    description: "A compact bucket form for delicate everyday carrying.",
+    price: "From R480",
+    status: "Published",
+    is_featured: false,
+    available_sizing: ["One size"],
+    available_colors: ["Neutral"],
+  },
+  {
+    id: "ribbon-wrap-top",
+    slug: "ribbon-wrap-top",
+    title: "Ribbon Wrap Top",
+    type: "Crochet top",
+    description: "A custom wrap top available in ocean, lime, and made-to-order colour directions.",
+    price: "From R540",
+    status: "Published",
+    is_featured: false,
+    available_sizing: ["XS", "Small", "Medium", "Large", "XL", "Custom Measurements"],
+    available_colors: ["Ocean", "Lime", "Custom colour"],
+  },
+  {
+    id: "spectrum-fringe",
+    slug: "spectrum-fringe",
+    title: "Spectrum Fringe",
+    type: "Custom skirt piece",
+    description: "A colourful fringe skirt designed for movement and occasion styling.",
+    price: "From R700",
+    status: "Published",
+    is_featured: false,
+    available_sizing: ["XS", "Small", "Medium", "Large", "XL", "Custom Measurements"],
+    available_colors: ["Spectrum fringe"],
+  },
+];
+
+function getFallbackProduct(slugOrId) {
+  return FALLBACK_PRODUCTS.find((product) => product.slug === slugOrId || product.id === slugOrId) || null;
+}
+
 function getPublicProductCardImage(product) {
   return resolveProductCardImage(product, FALLBACK_PRODUCT_IMAGES);
+}
+
+function BackToLinkIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M10 19 3 12l7-7"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M3 12h18"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
 }
 
 
@@ -56,7 +151,13 @@ const testimonials = [
   ["The consultation made ordering feel calm and considered. I knew exactly what would happen next.", "Crochet inquiry client"],
 ];
 
-const adminTabs = ["Overview", "Inquiries", "Collections", "Makeup", "Content", "Settings"];
+const adminTabs = ["Overview", "Inquiries", "Products", "Settings"];
+
+const inquirySections = [
+  { id: "general", label: "General", emptyText: "No general requests yet." },
+  { id: "makeup", label: "Makeup", emptyText: "No makeup requests yet." },
+  { id: "existing", label: "Existing products", emptyText: "No existing product requests yet." },
+];
 
 const initialContent = {
   aboutTitle: "Founded by Liyema Kabi in Gqeberha, South Africa.",
@@ -83,6 +184,67 @@ function getInquiryCounts(inquiries) {
   );
 }
 
+function isExistingProductInquiry(inquiry, productTitles) {
+  return productTitles.has((inquiry.garment_or_service || "").trim().toLowerCase());
+}
+
+function getInquirySectionItems(inquiries, productTitles) {
+  return {
+    makeup: inquiries.filter((inquiry) => inquiry.inquiry_type === "Makeup Service"),
+    existing: inquiries.filter((inquiry) => isExistingProductInquiry(inquiry, productTitles)),
+    general: inquiries.filter(
+      (inquiry) => inquiry.inquiry_type !== "Makeup Service" && !isExistingProductInquiry(inquiry, productTitles)
+    ),
+  };
+}
+
+function AdminTabIcon({ tab }) {
+  const common = {
+    viewBox: "0 0 24 24",
+    width: "20",
+    height: "20",
+    fill: "none",
+    xmlns: "http://www.w3.org/2000/svg",
+    "aria-hidden": "true",
+  };
+
+  if (tab === "Overview") {
+    return (
+      <svg {...common}>
+        <path d="M4 13.5h6.5V20H4v-6.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        <path d="M13.5 4H20v16h-6.5V4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        <path d="M4 4h6.5v6.5H4V4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (tab === "Inquiries") {
+    return (
+      <svg {...common}>
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v7A2.5 2.5 0 0 1 17.5 15H9l-5 4V5.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        <path d="M8 8h8M8 11h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (tab === "Products") {
+    return (
+      <svg {...common}>
+        <path d="M12 4v2.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M12 6.2c1.15 0 2 .72 2 1.7 0 1.22-1.02 1.56-2 2.1l-5.6 3.1c-.9.5-.54 1.9.49 1.9h10.22c1.03 0 1.39-1.4.49-1.9L12 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M7 19h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg {...common}>
+      <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M19 12a7.1 7.1 0 0 0-.12-1.3l2-1.45-2-3.46-2.36.95a7.4 7.4 0 0 0-2.24-1.3L14 3h-4l-.28 2.44a7.4 7.4 0 0 0-2.24 1.3l-2.36-.95-2 3.46 2 1.45A7.1 7.1 0 0 0 5 12c0 .44.04.88.12 1.3l-2 1.45 2 3.46 2.36-.95a7.4 7.4 0 0 0 2.24 1.3L10 21h4l.28-2.44a7.4 7.4 0 0 0 2.24-1.3l2.36.95 2-3.46-2-1.45c.08-.42.12-.86.12-1.3Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 async function submitInquiryToSupabase(inquiry) {
   if (!isSupabaseConfigured) {
     return { error: { message: "Supabase is not configured yet. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY." } };
@@ -100,12 +262,20 @@ function AdminApp() {
   const [inquiries, setInquiries] = useState([]);
   const [dataStatus, setDataStatus] = useState("No inquiries loaded yet.");
   const [productCount, setProductCount] = useState(0);
+  const [productTitles, setProductTitles] = useState(
+    () => new Set(FALLBACK_PRODUCTS.map((product) => product.title.trim().toLowerCase()))
+  );
+  const [activeInquirySection, setActiveInquirySection] = useState("general");
+  const [activeSettingsPanel, setActiveSettingsPanel] = useState("contact");
   const [contentDraft, setContentDraft] = useState(initialContent);
   const [isLoadingInquiries, setIsLoadingInquiries] = useState(false);
 
   const counts = useMemo(() => getInquiryCounts(inquiries), [inquiries]);
   const recentInquiries = inquiries.slice(0, 5);
-  const makeupBookings = inquiries.filter((inquiry) => inquiry.inquiry_type === "Makeup Service");
+  const inquirySectionItems = useMemo(
+    () => getInquirySectionItems(inquiries, productTitles),
+    [inquiries, productTitles]
+  );
 
   const loadInquiries = useCallback(async () => {
     setDataStatus("Loading inquiries...");
@@ -132,8 +302,10 @@ function AdminApp() {
     try {
       const products = await fetchAdminProducts();
       setProductCount(products.length);
+      setProductTitles(new Set(products.map((product) => (product.title || "").trim().toLowerCase()).filter(Boolean)));
     } catch {
       setProductCount(0);
+      setProductTitles(new Set(FALLBACK_PRODUCTS.map((product) => product.title.trim().toLowerCase())));
     }
   }, []);
 
@@ -227,7 +399,11 @@ function AdminApp() {
         <a className="admin-logo" href="/admin" aria-label="Likitu admin home">
           <img src={likituLogo} alt="Likitu" />
         </a>
-        <nav className="admin-nav" aria-label="Admin sections">
+        <nav
+          className="admin-nav"
+          aria-label="Admin sections"
+          style={{ "--active-index": adminTabs.indexOf(activeTab), "--dock-count": adminTabs.length }}
+        >
           {adminTabs.map((tab) => (
             <button
               className={activeTab === tab ? "is-active" : ""}
@@ -236,50 +412,7 @@ function AdminApp() {
               onClick={() => setActiveTab(tab)}
             >
               <span className="admin-nav__icon" aria-hidden="true">
-                {tab === "Overview" && (
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M4 11.5L12 4l8 7.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
-                    <path d="M9.5 21v-7.2c0-.66.54-1.2 1.2-1.2h2.6c.66 0 1.2.54 1.2 1.2V21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                  </svg>
-                )}
-                {tab === "Inquiries" && (
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 14.5V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                    <path d="M8 10h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                    <path d="M6 19h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                    <path d="M10 19c0 1.1-.9 2-2 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                    <path d="M14 19c0 1.1.9 2 2 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                  </svg>
-                )}
-                {tab === "Collections" && (
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M4 8l8-4 8 4-8 4-8-4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
-                    <path d="M4 8v8l8 4 8-4V8" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
-                    <path d="M12 12v8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                  </svg>
-                )}
-                {tab === "Makeup" && (
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 3h6l1 6H8l1-6Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
-                    <path d="M7 9l-1 12h12l-1-12" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
-                    <path d="M9.5 13h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                    <path d="M10 16h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                  </svg>
-                )}
-                {tab === "Content" && (
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Z" stroke="currentColor" strokeWidth="1.8"/>
-                    <path d="M8 7h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                    <path d="M8 11h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                    <path d="M8 15h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                  </svg>
-                )}
-                {tab === "Settings" && (
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" strokeWidth="1.8"/>
-                    <path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.02.02-1.6 2.77-.03-.01a1.8 1.8 0 0 0-2.02.6 1.8 1.8 0 0 0-.33 2.02v.03H8.3v-.03a1.8 1.8 0 0 0-.33-2.02 1.8 1.8 0 0 0-2.02-.6l-.03.01-1.6-2.77.02-.02A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.76-1.2H2.8V9.2h.04A1.8 1.8 0 0 0 4.6 8a1.8 1.8 0 0 0-.36-1.98l-.02-.02 1.6-2.77.03.01a1.8 1.8 0 0 0 2.02-.6A1.8 1.8 0 0 0 8.3 1.6V1.57h7.4V1.6c0 .75.28 1.45.78 1.98.5.53 1.2.8 1.95.8.23 0 .46-.03.67-.1l.03-.01 1.6 2.77-.02.02A1.8 1.8 0 0 0 19.4 8c.76.35 1.3 1.08 1.32 1.98v.04h.04v4.6h-.04v.04c-.02.9-.56 1.63-1.32 1.98Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" strokeLinecap="round"/>
-                  </svg>
-                )}
+                <AdminTabIcon tab={tab} />
               </span>
               <span className="admin-nav__label">{tab}</span>
             </button>
@@ -291,7 +424,6 @@ function AdminApp() {
       <main className="admin-main">
         <header className="admin-topbar">
           <div>
-            <p className="admin-kicker">Dashboard</p>
             <h1>{activeTab}</h1>
           </div>
           <button
@@ -327,61 +459,131 @@ function AdminApp() {
           </button>
         </header>
 
-        {activeTab === "Overview" && (
-          <section className="admin-panel-stack">
-            <div className="admin-stat-grid">
-              <article><span>Total inquiries</span><strong>{counts.total}</strong></article>
-              <article><span>Custom design requests</span><strong>{counts.custom}</strong></article>
-              <article><span>Makeup bookings</span><strong>{counts.makeup}</strong></article>
-              <article><span>Products</span><strong>{productCount}</strong></article>
-            </div>
-            <AdminInquiryList title="Recent inquiries" inquiries={recentInquiries} emptyText={dataStatus} />
-          </section>
-        )}
+        <div className="admin-view-panel" key={activeTab}>
+          {activeTab === "Overview" && (
+            <section className="admin-panel-stack">
+              <div className="admin-stat-grid">
+                <article><span>Total inquiries</span><strong>{counts.total}</strong></article>
+                <article><span>Custom design requests</span><strong>{counts.custom}</strong></article>
+                <article><span>Makeup bookings</span><strong>{counts.makeup}</strong></article>
+                <article><span>Products</span><strong>{productCount}</strong></article>
+              </div>
+              <AdminInquiryList title="Recent inquiries" inquiries={recentInquiries} emptyText={dataStatus} />
+            </section>
+          )}
 
-        {activeTab === "Inquiries" && <AdminInquiryList title="All submitted inquiries" inquiries={inquiries} emptyText={dataStatus} />}
+          {activeTab === "Inquiries" && (
+            <AdminInquirySections
+              sections={inquirySections}
+              groupedInquiries={inquirySectionItems}
+              activeSection={activeInquirySection}
+              setActiveSection={setActiveInquirySection}
+              dataStatus={dataStatus}
+            />
+          )}
 
-        {activeTab === "Collections" && <AdminCollections />}
+          {activeTab === "Products" && <AdminCollections />}
 
-        {activeTab === "Makeup" && <AdminInquiryList title="Makeup booking requests" inquiries={makeupBookings} emptyText="No makeup bookings yet." />}
+          {activeTab === "Settings" && (
+            <section className="admin-settings-panels">
+              <button
+                className={`admin-settings-panel-toggle${activeSettingsPanel === "contact" ? " is-active" : ""}`}
+                type="button"
+                onClick={() => setActiveSettingsPanel((current) => (current === "contact" ? "" : "contact"))}
+              >
+                <span>Manage contact details</span>
+                <strong>{activeSettingsPanel === "contact" ? "Close" : "Open"}</strong>
+              </button>
+              {activeSettingsPanel === "contact" && (
+                <section className="admin-form-panel admin-settings-panel">
+                  <label>
+                    WhatsApp number
+                    <input value={contentDraft.whatsapp} onChange={(event) => setContentDraft({ ...contentDraft, whatsapp: event.target.value })} />
+                  </label>
+                  <label>
+                    Instagram handle
+                    <input value={contentDraft.instagram} onChange={(event) => setContentDraft({ ...contentDraft, instagram: event.target.value })} />
+                  </label>
+                  <label>
+                    Email inquiry address
+                    <input type="email" value={contentDraft.email} onChange={(event) => setContentDraft({ ...contentDraft, email: event.target.value })} />
+                  </label>
+                  <p className="admin-note">Contact settings are editable here and can be connected to a `site_settings` table next.</p>
+                </section>
+              )}
 
-        {activeTab === "Content" && (
-          <section className="admin-form-panel">
-            <label>
-              About page heading
-              <input value={contentDraft.aboutTitle} onChange={(event) => setContentDraft({ ...contentDraft, aboutTitle: event.target.value })} />
-            </label>
-            <label>
-              About page story
-              <textarea rows="5" value={contentDraft.aboutBody} onChange={(event) => setContentDraft({ ...contentDraft, aboutBody: event.target.value })} />
-            </label>
-            <label>
-              Upload new photos
-              <input type="file" accept="image/*" multiple />
-            </label>
-            <p className="admin-note">This screen is ready for content editing. Add a Supabase content table/storage bucket to persist these changes.</p>
-          </section>
-        )}
-
-        {activeTab === "Settings" && (
-          <section className="admin-form-panel">
-            <label>
-              WhatsApp number
-              <input value={contentDraft.whatsapp} onChange={(event) => setContentDraft({ ...contentDraft, whatsapp: event.target.value })} />
-            </label>
-            <label>
-              Instagram handle
-              <input value={contentDraft.instagram} onChange={(event) => setContentDraft({ ...contentDraft, instagram: event.target.value })} />
-            </label>
-            <label>
-              Email inquiry address
-              <input type="email" value={contentDraft.email} onChange={(event) => setContentDraft({ ...contentDraft, email: event.target.value })} />
-            </label>
-            <p className="admin-note">Contact settings are editable here and can be connected to a `site_settings` table next.</p>
-          </section>
-        )}
+              <button
+                className={`admin-settings-panel-toggle${activeSettingsPanel === "content" ? " is-active" : ""}`}
+                type="button"
+                onClick={() => setActiveSettingsPanel((current) => (current === "content" ? "" : "content"))}
+              >
+                <span>Content</span>
+                <strong>{activeSettingsPanel === "content" ? "Close" : "Open"}</strong>
+              </button>
+              {activeSettingsPanel === "content" && (
+                <section className="admin-form-panel admin-settings-panel">
+                  <label>
+                    About page heading
+                    <input value={contentDraft.aboutTitle} onChange={(event) => setContentDraft({ ...contentDraft, aboutTitle: event.target.value })} />
+                  </label>
+                  <label>
+                    About page story
+                    <textarea rows="5" value={contentDraft.aboutBody} onChange={(event) => setContentDraft({ ...contentDraft, aboutBody: event.target.value })} />
+                  </label>
+                  <label>
+                    Upload new photos
+                    <input type="file" accept="image/*" multiple />
+                  </label>
+                  <p className="admin-note">This screen is ready for content editing. Add a Supabase content table/storage bucket to persist these changes.</p>
+                </section>
+              )}
+            </section>
+          )}
+        </div>
       </main>
     </div>
+  );
+}
+
+function AdminInquirySections({ sections, groupedInquiries, activeSection, setActiveSection, dataStatus }) {
+  const selectedSection = sections.find((section) => section.id === activeSection) || sections[0];
+  const selectedInquiries = groupedInquiries[selectedSection.id] || [];
+  const emptyText =
+    dataStatus.startsWith("Loading") || dataStatus.startsWith("Could not")
+      ? dataStatus
+      : selectedSection.emptyText;
+
+  return (
+    <section className="admin-panel-stack">
+      <div className="admin-inquiry-sections" role="tablist" aria-label="Inquiry categories">
+        {sections.map((section) => {
+          const count = groupedInquiries[section.id]?.length || 0;
+          const isActive = selectedSection.id === section.id;
+
+          return (
+            <button
+              className={`admin-inquiry-section${isActive ? " is-active" : ""}`}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              key={section.id}
+              onClick={() => setActiveSection(section.id)}
+            >
+              <span>{section.label}</span>
+              <strong>{count}</strong>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="admin-inquiry-content-swap" key={selectedSection.id}>
+        <AdminInquiryList
+          title={selectedSection.label}
+          inquiries={selectedInquiries}
+          emptyText={emptyText}
+        />
+      </div>
+    </section>
   );
 }
 
@@ -429,8 +631,69 @@ function AdminInquiryList({ title, inquiries, emptyText }) {
   );
 }
 
+function ProductLoadingOverlay({ isFading }) {
+  return (
+    <div
+      className={`product-loading-overlay${isFading ? " is-fading" : ""}`}
+      role="status"
+      aria-live="polite"
+    >
+      <div className="product-loading-icon-wrap" aria-hidden="true">
+        <img className="product-loading-icon" src={likituIcon} alt="" />
+      </div>
+    </div>
+  );
+}
+
+function ProductPageHeader() {
+  return (
+    <header className="product-page-header">
+      <a className="product-back-link" href="/" aria-label="Back to home">
+        <BackToLinkIcon />
+      </a>
+      <a className="product-page-logo" href="/" aria-label="Likitu home">
+        <img src={likituLogo} alt="Likitu" />
+      </a>
+      <span className="product-page-header__spacer" aria-hidden="true" />
+    </header>
+  );
+}
+
+function ProductPageFooter() {
+  return (
+    <footer className="site-footer product-page-footer">
+      <div className="site-footer__brand">
+        <img src={likituLogoWhite} alt="Likitu logo" />
+        <p>{preventOrphan("Handcrafted crochet pieces and beauty consultations, designed and made in Gqeberha.")}</p>
+        <div className="site-footer__social">
+          <a href="https://instagram.com/likitu" target="_blank" rel="noreferrer" aria-label="Likitu on Instagram">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.684.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" />
+            </svg>
+          </a>
+          <a href="https://facebook.com/likitu" target="_blank" rel="noreferrer" aria-label="Likitu on Facebook">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+            </svg>
+          </a>
+          <a href="https://wa.me/27814375659" target="_blank" rel="noreferrer noopener" aria-label="Chat with Likitu on WhatsApp">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.007a9.863 9.863 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.458 5.704 1.459h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+            </svg>
+          </a>
+        </div>
+      </div>
+      <div className="site-footer__meta">
+        <a href="tel:+27814375659">+27 81 437 5659</a>
+        <a href="mailto:likitu.cb@gmail.com">likitu.cb@gmail.com</a>
+        <span>© {new Date().getFullYear()} Likitu Fashion & Beauty</span>
+      </div>
+    </footer>
+  );
+}
+
 function ProductInquiryPage({ slugOrId }) {
-  const [product, setProduct] = useState(null);
+  const [product, setProduct] = useState(() => getFallbackProduct(slugOrId));
   const [productStatus, setProductStatus] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingFading, setIsLoadingFading] = useState(false);
@@ -443,27 +706,29 @@ function ProductInquiryPage({ slugOrId }) {
       setIsLoading(true);
       setIsLoadingFading(false);
       setProductStatus("");
+      setProduct(getFallbackProduct(slugOrId));
 
       try {
         const row = await fetchProductBySlugOrId(slugOrId);
+        const nextProduct = row || getFallbackProduct(slugOrId);
         if (!active) return;
 
-        setProduct(row);
-        setProductStatus(row ? "Product loaded." : "Product not found.");
+        setProduct(nextProduct);
+        setProductStatus(nextProduct ? "Product loaded." : "Product not found.");
       } catch (error) {
         if (!active) return;
 
-        setProduct(null);
-        setProductStatus(`Could not load product: ${error.message}`);
+        const fallbackProduct = getFallbackProduct(slugOrId);
+        setProduct(fallbackProduct);
+        setProductStatus(fallbackProduct ? "Product loaded." : `Could not load product: ${error.message}`);
       } finally {
-        if (!active) return;
-
-        // Smooth transition: fade overlay out, then unmount it.
-        setIsLoadingFading(true);
-        fadeTimeoutId = window.setTimeout(() => {
-          if (!active) return;
-          setIsLoading(false);
-        }, 240);
+        if (active) {
+          // Smooth transition: fade overlay out, then unmount it.
+          setIsLoadingFading(true);
+          fadeTimeoutId = window.setTimeout(() => {
+            if (active) setIsLoading(false);
+          }, 360);
+        }
       }
     }
 
@@ -478,55 +743,15 @@ function ProductInquiryPage({ slugOrId }) {
   const [formStatus, setFormStatus] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (isLoading) {
-    return (
-      <main
-        className={`product-loading-overlay${isLoadingFading ? " is-fading" : ""}`}
-        role="status"
-        aria-live="polite"
-      >
-        <div className="product-loading-icon-wrap" aria-hidden="true">
-          <img className="product-loading-icon" src={likituIcon} alt="" />
-        </div>
-      </main>
-    );
-  }
-
-  const BackToLinkIcon = () => (
-    // Arrow with stem (returns "back" direction clearly)
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path
-        d="M10 19 3 12l7-7"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M3 12h18"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-
   if (!product) {
     return (
-      <main className="product-page product-page--missing">
-        <a className="product-back-link" href="/" aria-label="Back to home">
-          <BackToLinkIcon />
-        </a>
-        <h1>{productStatus || "Product not found."}</h1>
-      </main>
+      <>
+        {isLoading && <ProductLoadingOverlay isFading={isLoadingFading} />}
+        <main className="product-page product-page--missing">
+          <ProductPageHeader />
+          <h1>{productStatus || "Product not found."}</h1>
+        </main>
+      </>
     );
   }
 
@@ -591,68 +816,70 @@ function ProductInquiryPage({ slugOrId }) {
   };
 
   return (
-    <main className="product-page">
-      <a className="product-back-link" href="/" aria-label="Back to home">
-        <BackToLinkIcon />
-      </a>
-      <section className="product-detail">
-        <figure>
-          <img src={getPublicProductCardImage(product)} alt={`${product.title} by Likitu`} />
-        </figure>
-        <div className="product-detail__content">
-          <p className="eyebrow">{product.type}</p>
-          <h1>{product.title}</h1>
-          {product.price && <p className="product-detail__price">{product.price}</p>}
-          <p>{product.description}</p>
-          {product.available_colors?.length > 0 && (
-            <p className="product-detail__meta">Available colors: {product.available_colors.join(", ")}</p>
-          )}
-          {product.available_sizing?.length > 0 && (
-            <p className="product-detail__meta">Available sizing: {product.available_sizing.join(", ")}</p>
-          )}
+    <div className="product-page-shell">
+      {isLoading && <ProductLoadingOverlay isFading={isLoadingFading} />}
+      <main className={`product-page${isLoading ? " is-loading" : " is-ready"}`}>
+        <ProductPageHeader />
+        <section className="product-detail">
+          <figure>
+            <img src={getPublicProductCardImage(product)} alt={`${product.title} by Likitu`} />
+          </figure>
+          <div className="product-detail__content">
+            <p className="eyebrow">{product.type}</p>
+            <h1>{product.title}</h1>
+            {product.price && <p className="product-detail__price">{product.price}</p>}
+            <p>{product.description}</p>
+            {product.available_colors?.length > 0 && (
+              <p className="product-detail__meta">Available colors: {product.available_colors.join(", ")}</p>
+            )}
+            {product.available_sizing?.length > 0 && (
+              <p className="product-detail__meta">Available sizing: {product.available_sizing.join(", ")}</p>
+            )}
 
-          <form className="inquiry-form product-inquiry-form" onSubmit={handleProductInquiry}>
-            <div className="form-grid">
-              <label>
-                Full name
-                <input name="fullName" type="text" required />
-              </label>
-              <label>
-                WhatsApp number
-                <input name="phone" type="tel" placeholder="+27XXXXXXXXX or 0XXXXXXXXX" pattern="(\+27|0)[0-9]{9}" required />
-              </label>
-              <label>
-                Preferred sizing
-                <select name="size" required defaultValue="">
-                  <option value="" disabled>Select one</option>
-                  <option>XS</option>
-                  <option>Small</option>
-                  <option>Medium</option>
-                  <option>Large</option>
-                  <option>XL</option>
-                  <option>Custom Measurements</option>
-                  <option>Not Applicable</option>
-                </select>
-              </label>
-              <label>
-                Needed by
-                <input name="neededBy" type="date" />
-              </label>
-              <label className="form-grid__wide file-field">
-                Inspiration images
-                <input name="reference" type="file" accept="image/*" />
-              </label>
-              <label className="form-grid__wide">
-                Describe your desired design or booking
-                <textarea name="details" rows="5" placeholder="Colour, fit, measurements, styling notes..." />
-              </label>
-            </div>
-            <button className="button button--dark" type="submit" disabled={isSubmitting}>{isSubmitting ? "Sending inquiry" : "Inquire about this piece"}</button>
-            {formStatus && <p className="form-status" role="status">{formStatus}</p>}
-          </form>
-        </div>
-      </section>
-    </main>
+            <form className="inquiry-form product-inquiry-form" onSubmit={handleProductInquiry}>
+              <div className="form-grid">
+                <label>
+                  Full name
+                  <input name="fullName" type="text" required />
+                </label>
+                <label>
+                  WhatsApp number
+                  <input name="phone" type="tel" placeholder="+27XXXXXXXXX or 0XXXXXXXXX" pattern="(\+27|0)[0-9]{9}" required />
+                </label>
+                <label>
+                  Preferred sizing
+                  <select name="size" required defaultValue="">
+                    <option value="" disabled>Select one</option>
+                    <option>XS</option>
+                    <option>Small</option>
+                    <option>Medium</option>
+                    <option>Large</option>
+                    <option>XL</option>
+                    <option>Custom Measurements</option>
+                    <option>Not Applicable</option>
+                  </select>
+                </label>
+                <label>
+                  Needed by
+                  <input name="neededBy" type="date" />
+                </label>
+                <label className="form-grid__wide file-field">
+                  Inspiration images
+                  <input name="reference" type="file" accept="image/*" />
+                </label>
+                <label className="form-grid__wide">
+                  Describe your desired design or booking
+                  <textarea name="details" rows="5" placeholder="Colour, fit, measurements, styling notes..." />
+                </label>
+              </div>
+              <button className="button button--dark" type="submit" disabled={isSubmitting}>{isSubmitting ? "Sending inquiry" : "Inquire about this piece"}</button>
+              {formStatus && <p className="form-status" role="status">{formStatus}</p>}
+            </form>
+          </div>
+        </section>
+      </main>
+      <ProductPageFooter />
+    </div>
   );
 }
 
@@ -691,12 +918,14 @@ function PublicSite() {
   const isUserInteractingRef = useRef(false);
   const railOneThirdRef = useRef(0);
   const scrollEndTimeoutRef = useRef(null);
+  const carouselResumeTimeoutRef = useRef(null);
 
   const [whatsappBottom, setWhatsappBottom] = useState(24);
   const [showMobileBackToTop, setShowMobileBackToTop] = useState(false);
 
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState(FALLBACK_PRODUCTS);
   const [productsStatus, setProductsStatus] = useState("");
+  const productRevealKey = useMemo(() => products.map((product) => product.id).join("|"), [products]);
 
 
   useEffect(() => {
@@ -736,9 +965,10 @@ function PublicSite() {
 
   const loadProducts = useCallback(async () => {
     const publicProducts = await fetchPublicProducts();
-    setProducts(publicProducts);
+    const visibleProducts = publicProducts.length ? publicProducts : FALLBACK_PRODUCTS;
+    setProducts(visibleProducts);
     // No blocking “Loading products…” UI; just set an appropriate end state.
-    setProductsStatus(publicProducts.length ? "" : "No published products.");
+    setProductsStatus(visibleProducts.length ? "" : "No published products.");
   }, []);
 
   useEffect(() => {
@@ -746,6 +976,37 @@ function PublicSite() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadProducts();
   }, [loadProducts]);
+
+  useEffect(() => {
+    const revealItems = Array.from(document.querySelectorAll(".reveal"));
+    if (revealItems.length === 0) return undefined;
+
+    if (!("IntersectionObserver" in window)) {
+      revealItems.forEach((item) => item.classList.add("is-visible"));
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        });
+      },
+      {
+        root: null,
+        rootMargin: "0px 0px -12% 0px",
+        threshold: 0.12,
+      },
+    );
+
+    revealItems.forEach((item) => {
+      if (!item.classList.contains("is-visible")) observer.observe(item);
+    });
+
+    return () => observer.disconnect();
+  }, [productRevealKey]);
 
   // Set initial scroll to the middle copy so user can scroll left
   useEffect(() => {
@@ -764,14 +1025,18 @@ function PublicSite() {
     if (!rail) return undefined;
 
     let frameId;
-    const SPEED = 0.7; // px per frame
+    let lastTimestamp = performance.now();
+    const SPEED = 42; // px per second
 
-    const tick = () => {
+    const tick = (timestamp) => {
+      const elapsedSeconds = Math.min((timestamp - lastTimestamp) / 1000, 0.08);
+      lastTimestamp = timestamp;
+
       if (!isPausedRef.current && !isUserInteractingRef.current) {
         const oneThird = railOneThirdRef.current || (rail.scrollWidth / 3);
         railOneThirdRef.current = oneThird;
 
-        rail.scrollLeft += SPEED;
+        rail.scrollLeft += SPEED * elapsedSeconds;
         // Seamless loop: jump back when past 2nd copy
         if (rail.scrollLeft >= oneThird * 2) {
           rail.scrollLeft -= oneThird;
@@ -781,7 +1046,11 @@ function PublicSite() {
     };
 
     frameId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frameId);
+    return () => {
+      cancelAnimationFrame(frameId);
+      if (scrollEndTimeoutRef.current) window.clearTimeout(scrollEndTimeoutRef.current);
+      if (carouselResumeTimeoutRef.current) window.clearTimeout(carouselResumeTimeoutRef.current);
+    };
   }, [products.length]);
 
   const clampRailLoop = useCallback(() => {
@@ -866,9 +1135,30 @@ function PublicSite() {
     form.reset();
   };
 
+  const clearCarouselResumeTimeout = () => {
+    if (carouselResumeTimeoutRef.current) {
+      window.clearTimeout(carouselResumeTimeoutRef.current);
+      carouselResumeTimeoutRef.current = null;
+    }
+  };
+
+  const handleCarouselHoverStart = () => {
+    isPausedRef.current = true;
+    clearCarouselResumeTimeout();
+  };
+
+  const handleCarouselHoverEnd = (event) => {
+    if (event?.currentTarget?.contains(event.relatedTarget)) return;
+    isPausedRef.current = false;
+    isUserInteractingRef.current = false;
+    clearCarouselResumeTimeout();
+    clampRailLoop();
+  };
+
   const handleCarouselInteractionStart = () => {
     isPausedRef.current = true;
     isUserInteractingRef.current = true;
+    clearCarouselResumeTimeout();
     if (scrollEndTimeoutRef.current) {
       window.clearTimeout(scrollEndTimeoutRef.current);
       scrollEndTimeoutRef.current = null;
@@ -876,14 +1166,20 @@ function PublicSite() {
   };
 
   const handleCarouselInteractionEnd = () => {
-    // Always resume quickly; if user continues dragging, start will re-pause.
-    isPausedRef.current = false;
+    if (!isUserInteractingRef.current) return;
     isUserInteractingRef.current = false;
 
     if (scrollEndTimeoutRef.current) {
       window.clearTimeout(scrollEndTimeoutRef.current);
       scrollEndTimeoutRef.current = null;
     }
+
+    clearCarouselResumeTimeout();
+    carouselResumeTimeoutRef.current = window.setTimeout(() => {
+      clampRailLoop();
+      isPausedRef.current = false;
+      carouselResumeTimeoutRef.current = null;
+    }, 700);
   };
 
 
@@ -961,8 +1257,10 @@ function PublicSite() {
         <section
           className="product-carousel"
           aria-labelledby="product-carousel-title"
-          onMouseEnter={handleCarouselInteractionStart}
-          onMouseLeave={handleCarouselInteractionEnd}
+          onMouseEnter={handleCarouselHoverStart}
+          onMouseLeave={handleCarouselHoverEnd}
+          onFocus={handleCarouselHoverStart}
+          onBlur={handleCarouselHoverEnd}
         >
           <div className="product-carousel__head reveal">
             <p className="eyebrow">Browse handmade pieces and inquire from the product page.</p>
@@ -982,6 +1280,7 @@ function PublicSite() {
             onPointerDown={handleCarouselInteractionStart}
             onPointerUp={handleCarouselInteractionEnd}
             onPointerCancel={handleCarouselInteractionEnd}
+            onPointerLeave={handleCarouselInteractionEnd}
             onTouchStart={handleCarouselInteractionStart}
             onTouchEnd={handleCarouselInteractionEnd}
           >
@@ -990,9 +1289,10 @@ function PublicSite() {
             ) : (
               [...products, ...products, ...products].map((item, index) => (
                 <a
-                  className="product-tile"
+                  className="product-tile reveal"
                   href={item.slug ? `/products/${item.slug}` : `/products/${item.id}`}
                   key={`${item.id}-${index}`}
+                  style={{ "--delay": `${(index % Math.max(products.length, 1)) * 70}ms` }}
                 >
                   <img src={getPublicProductCardImage(item)} alt={`${item.title} by Likitu`} />
                   <span>{item.type}</span>
@@ -1112,12 +1412,13 @@ function PublicSite() {
               products
                 .filter((p) => p.status === "Published")
                 .sort((a, b) => Number(b.is_featured) - Number(a.is_featured) || 0)
-                .map((item) => (
+                .map((item, index) => (
                   <a
                     className="collection-card reveal"
                     href={item.slug ? `/products/${item.slug}` : `/products/${item.id}`}
                     key={item.id}
                     data-featured={item.is_featured}
+                    style={{ "--delay": `${index * 80}ms` }}
                   >
                     <img src={getPublicProductCardImage(item)} alt={`${item.title} by Likitu`} />
                     <div>
